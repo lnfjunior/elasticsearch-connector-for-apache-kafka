@@ -283,13 +283,18 @@ public class ElasticsearchClientWrapper implements ElasticsearchClient {
         return new BulkOperation.Builder().index(operation -> {
             operation
                 .index(record.key.index)
-                .id(record.key.id)
                 .document(binaryPayload);
-            if (record.version != null) {
-                operation
-                    .versionType(VersionType.External)
-                    .version(record.version);
+
+            if(record.key.id != null){
+                operation.id(record.key.id);
+
+                if (record.version != null) {
+                    operation
+                            .versionType(VersionType.External)
+                            .version(record.version);
+                }
             }
+
             return operation;
         }).build();
     }

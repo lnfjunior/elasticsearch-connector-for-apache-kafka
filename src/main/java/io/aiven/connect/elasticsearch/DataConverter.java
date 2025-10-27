@@ -75,7 +75,8 @@ public class DataConverter {
 
     private String convertKey(final Schema keySchema, final Object key) {
         if (key == null) {
-            throw new ConnectException("Key is used as document id and can not be null.");
+            // with null key document id is auto generated
+            return null;
         }
 
         final Schema.Type schemaType;
