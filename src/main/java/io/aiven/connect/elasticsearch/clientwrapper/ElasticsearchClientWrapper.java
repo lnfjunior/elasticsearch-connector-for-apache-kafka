@@ -62,6 +62,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -124,7 +125,7 @@ public class ElasticsearchClientWrapper implements ElasticsearchClient {
 
     private Version matchVersionString(final String esVersion) {
         // Default to latest version for forward compatibility
-        final Version defaultVersion = Version.ES_V8;
+        final Version defaultVersion = Version.ES_V9;
         if (esVersion == null) {
             LOG.warn("Couldn't get Elasticsearch version, version is null");
             return defaultVersion;
@@ -132,6 +133,8 @@ public class ElasticsearchClientWrapper implements ElasticsearchClient {
             return Version.ES_V7;
         } else if (esVersion.startsWith("8.")) {
             return Version.ES_V8;
+        } else if (esVersion.startsWith("9.")) {
+            return Version.ES_V9;
         } else {
             LOG.warn(
                 "The Elasticsearch version {} isn't explicitly supported, using the default version {}",
@@ -164,6 +167,14 @@ public class ElasticsearchClientWrapper implements ElasticsearchClient {
         }
         restClientBuilder.setHttpClientConfigCallback(httpClientConfigCallback -> {
             httpClientConfigCallback.setDefaultCredentialsProvider(credentialsProvider);
+
+            // Add request interceptor for ES9 compatibility headers
+            httpClientConfigCallback.addInterceptorFirst((HttpRequestInterceptor)
+                (request, context) -> {
+                    request.setHeader("Content-Type", "application/vnd.elasticsearch+json;compatible-with=8");
+                    request.setHeader("Accept", "application/vnd.elasticsearch+json;compatible-with=8");
+                });
+
             return httpClientConfigCallback.addInterceptorLast((HttpResponseInterceptor)
                 (response, context) ->
                     response.addHeader("X-Elastic-Product", "Elasticsearch"));
